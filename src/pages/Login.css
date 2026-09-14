@@ -1,0 +1,295 @@
+.login-page {
+  min-height: 70vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 20px;
+  background: #f9f9f9;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  padding: 32px 28px;
+  text-align: center;
+}
+
+.login-card h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+
+.login-sub {
+  color: #777;
+  margin: 0 0 12px;
+}
+
+.login-status {
+  font-size: 13px;
+  color: #555;
+  word-break: break-all;
+  margin: 0 0 16px;
+}
+
+.login-status .linked {
+  color: #0e9f6e;
+}
+
+.login-status .unlinked {
+  color: #e02424;
+}
+
+.login-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.login-tabs .tab {
+  flex: 1;
+  padding: 10px 0;
+  border: 1px solid #ddd;
+  background: #f5f5f5;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.login-tabs .tab.active {
+  background: #e4506e;
+  border-color: #e4506e;
+  color: #fff;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.login-form input:not([type='checkbox']) {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.login-row {
+  display: flex;
+  gap: 12px;
+}
+
+.login-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #555;
+}
+
+.login-divider {
+  margin: 18px 0;
+  color: #aaa;
+  font-size: 13px;
+}
+
+.login-error {
+  color: #e02424;
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+
+.login-info {
+  color: #0e9f6e;
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+
+.btn {
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btn i {
+  margin-right: 6px;
+}
+
+.btn-primary {
+  background: #e4506e;
+  color: #fff;
+  margin-top: 2px;
+}
+
+.btn-wallet {
+  background: #0e9f6e;
+  color: #fff;
+}
+
+.btn-ghost {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.btn-logout {
+  background: #e4506e;
+  color: #fff;
+}
+.qr-panel {
+  margin-top: 12px;
+}
+
+.btn-wallet-qr {
+  background: #fff;
+  color: #0e9f6e;
+  border: 1px solid #0e9f6e;
+}
+
+.btn-wallet-qr:hover:not(:disabled) {
+  background: #0e9f6e;
+  color: #fff;
+}
+
+.qr-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px dashed #ddd;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.qr-hint {
+  font-size: 12px;
+  color: #777;
+  margin: 4px 0 0;
+  word-break: break-word;
+}
+
+.qr-link {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  color: #0e9f6e;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
+  user-select: all;
+}
+
+.qr-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.qr-actions .btn {
+  width: auto;
+  padding: 9px 18px;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.trust-banner {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #f0c674;
+  border-radius: 10px;
+  background: #fffbe6;
+  text-align: center;
+}
+
+.trust-banner-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #7d5a00;
+  line-height: 1.5;
+}
+
+.trust-banner .btn {
+  margin-top: 10px;
+}
+
+.qr-hint-warn {
+  color: #c05621;
+}/* ---- Multi-network wallet hub (one-QR connect) ---- */
+.wallet-hub {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #d9e8e0;
+  border-radius: 10px;
+  background: #f6fbf8;
+  text-align: center;
+}
+
+.wallet-hub .trust-banner-title {
+  margin: 0 0 2px;
+}
+
+/* EVM button — distinct blue so it never gets confused with the green Tron one */
+.btn-wallet-evm {
+  background: #2f6bdb;
+  color: #fff;
+}
+
+.btn-wallet-qr.btn-wallet-evm {
+  background: #fff;
+  color: #2f6bdb;
+  border: 1px solid #2f6bdb;
+}
+
+.btn-wallet-qr.btn-wallet-evm:hover:not(:disabled) {
+  background: #2f6bdb;
+  color: #fff;
+}
+
+/* Tron USDT (TRC-20) session-key payment panel */
+.tron-payments-slot {
+  margin-top: 14px;
+  text-align: left;
+}
+.tron-payments-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  margin: 0 0 14px;
+}
+.tron-payments-title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tron-payments-sub {
+  margin: 0 0 10px;
+  opacity: 0.65;
+  font-size: 0.85rem;
+}
+.tron-payments .login-row {
+  margin: 10px 0;
+}
+.tron-payments .btn {
+  margin-top: 8px;
+}
