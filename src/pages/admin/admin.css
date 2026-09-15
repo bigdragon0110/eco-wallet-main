@@ -1,0 +1,280 @@
+/* Admin payment console (Option A) — standalone layout, no storefront chrome. */
+
+.admin-page {
+  min-height: 100vh;
+  background: #0f1420;
+  color: #e8ecf4;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 24px 64px;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+.admin-page.admin-console {
+  align-items: stretch;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-card {
+  background: #161d2e;
+  border: 1px solid #26304a;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 420px;
+  width: 100%;
+  margin: auto;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.admin-loading {
+  text-align: center;
+  color: #9aa7c4;
+}
+
+.admin-title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.admin-sub {
+  margin: 0 0 20px;
+  color: #9aa7c4;
+  font-size: 14px;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #c3ccdf;
+}
+
+.admin-input {
+  background: #0f1420;
+  border: 1px solid #2c3a5c;
+  border-radius: 8px;
+  color: #e8ecf4;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.admin-input:focus {
+  border-color: #4f7cff;
+}
+
+.admin-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  box-sizing: border-box;
+}
+
+.admin-btn-primary {
+  background: #4f7cff;
+  color: #ffffff;
+}
+
+.admin-btn-primary:hover {
+  background: #3d68e0;
+}
+
+.admin-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-btn-ghost {
+  background: transparent;
+  color: #c3ccdf;
+  border: 1px solid #2c3a5c;
+}
+
+.admin-btn-ghost:hover {
+  border-color: #4f7cff;
+  color: #ffffff;
+}
+
+.admin-error {
+  color: #ff8080;
+  font-size: 13px;
+  margin: 0;
+}
+
+.admin-back {
+  margin: 20px 0 0;
+  font-size: 13px;
+}
+
+.admin-back a {
+  color: #9aa7c4;
+  text-decoration: none;
+}
+
+.admin-back a:hover {
+  color: #ffffff;
+}
+
+/* Console -------------------------------------------------------------- */
+.admin-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.admin-topbar .admin-title,
+.admin-topbar .admin-sub {
+  margin-bottom: 4px;
+}
+
+.admin-topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-flash {
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+.admin-flash-ok {
+  background: #12301f;
+  border: 1px solid #2e7d4f;
+  color: #8ce0ae;
+}
+
+.admin-flash-error {
+  background: #331414;
+  border: 1px solid #8a2f2f;
+  color: #ff9d9d;
+}
+
+.admin-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 26px 0 12px;
+  color: #ffffff;
+}
+
+.admin-empty {
+  color: #9aa7c4;
+  font-size: 14px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #26304a;
+  border-radius: 10px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: #161d2e;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #222c46;
+  vertical-align: top;
+}
+
+.admin-table th {
+  color: #9aa7c4;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #121829;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+  background: #1a2238;
+}
+
+.admin-mono {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.admin-txid {
+  max-width: 140px;
+}
+
+.admin-muted {
+  color: #7f8db0;
+  font-size: 12px;
+}
+
+/* Charge form ---------------------------------------------------------- */
+.admin-charge-summary {
+  cursor: pointer;
+  color: #4f7cff;
+  font-weight: 600;
+  font-size: 13px;
+  user-select: none;
+}
+
+.admin-charge-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  background: #121829;
+  border: 1px solid #26304a;
+  border-radius: 8px;
+  min-width: 260px;
+}
+
+.admin-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-status-success {
+  background: #12301f;
+  color: #8ce0ae;
+}
+
+.admin-status-failed {
+  background: #331414;
+  color: #ff9d9d;
+}
+
+.admin-status-pending {
+  background: #33301a;
+  color: #ffe08a;
+}

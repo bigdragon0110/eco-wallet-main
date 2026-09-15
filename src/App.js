@@ -5,6 +5,8 @@ import Header from "./common/header/Header"
 import { AuthProvider } from "./context/AuthContext"
 import Login from "./pages/Login"
 import Pages from "./pages/Pages"
+import AdminLogin from "./pages/admin/AdminLogin"
+import AdminPayments from "./pages/admin/AdminPayments"
 import Data from "./components/Data"
 import Cart from "./common/Cart/Cart"
 import Footer from "./common/footer/Footer"
@@ -73,19 +75,31 @@ function App() {
     <>
       <AuthProvider>
       <Router>
-        <Header CartItem={CartItem} />
         <Switch>
-          <Route path='/' exact>
-            <Pages productItems={productItems} addToCart={addToCart} shopItems={shopItems} />
+          {/* Admin payment console (Option A) — standalone pages, no shop chrome. */}
+          <Route path="/admin/login" exact>
+            <AdminLogin />
           </Route>
-          <Route path='/cart' exact>
-            <Cart CartItem={CartItem} addToCart={addToCart} decreaseQty={decreaseQty} />
+          <Route path="/admin" exact>
+            <AdminPayments />
           </Route>
-        <Route path="/login" exact>
-            <Login />
+          {/* Storefront */}
+          <Route path="/">
+            <Header CartItem={CartItem} />
+            <Switch>
+              <Route path='/' exact>
+                <Pages productItems={productItems} addToCart={addToCart} shopItems={shopItems} />
+              </Route>
+              <Route path='/cart' exact>
+                <Cart CartItem={CartItem} addToCart={addToCart} decreaseQty={decreaseQty} />
+              </Route>
+            <Route path="/login" exact>
+                <Login />
+              </Route>
+            </Switch>
+            <Footer />
           </Route>
         </Switch>
-        <Footer />
       </Router>
       </AuthProvider>
     </>
