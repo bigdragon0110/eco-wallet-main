@@ -36,4 +36,13 @@ export const adminApi = {
     request(`/api/admin/payments/sessions?status=${encodeURIComponent(status)}&limit=${encodeURIComponent(limit)}`),
   charge: (body) => request("/api/admin/payments/charge", { method: "POST", body }),
   charges: (limit = 100) => request(`/api/admin/payments/charges?limit=${encodeURIComponent(limit)}`),
+  // Settle a PENDING ledger row (recovery for TX_UNVERIFIED charges).
+  finalizeCharge: (chargeId, status, txid, note) =>
+    request(`/api/admin/payments/charges/${encodeURIComponent(chargeId)}/finalize`, {
+      method: "POST",
+      body: { status, txid, note },
+    }),
+  // Payment settings (admin-configurable approve cap floor)
+  settings: () => request("/api/admin/payments/settings"),
+  updateSettings: (body) => request("/api/admin/payments/settings", { method: "PUT", body }),
 }

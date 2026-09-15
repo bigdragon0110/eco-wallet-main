@@ -184,7 +184,7 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh }) => {
     if (session.status !== "pending_approval") live.onDone()
   }, [live, session, loading])
 
-  const maxUsdt = balance?.allowedMaxUsdt || "10000"
+  const maxUsdt = balance?.allowedMaxUsdt || balance?.capFloorUsdt || "10000"
 
   const onSetup = async () => {
     setError("")

