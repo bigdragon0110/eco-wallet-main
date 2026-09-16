@@ -91,10 +91,16 @@ export const EVMWalletConnectQR = ({ onApproved, busy, label = "Connect Ethereum
         session = approved.session
         setUri("")
         setSessionAddresses({ tron: approved.tronAddress, evm: null, sol: null })
+        // Parent may hide this component while accepting ownership of the session.
+        heldRef.current = true
         const result = await onApproved(c, session, approved.address, approved.tronAddress, approved.solAddress)
-        if (result && result.hold) heldRef.current = true
+        heldRef.current = Boolean(result?.hold)
+        if (!heldRef.current) await disconnectSession(c, session)
+        setOpen(false)
       })
       .catch((err) => {
+        heldRef.current = false
+        if (client) disconnectSession(client, session)
         if (!cancelled) setWcError(err.message || "WalletConnect pairing failed.")
       })
 

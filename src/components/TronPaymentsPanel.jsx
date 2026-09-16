@@ -49,7 +49,7 @@ const STATUS_LABEL = {
   expired: "Expired",
 }
 
-export const TronPaymentsPanel = ({ user, live, onUserRefresh }) => {
+export const TronPaymentsPanel = ({ user, live, onUserRefresh, compact = false }) => {
   const walletAddress = live?.tronAddress || user?.walletAddress
 
   const [balance, setBalance] = useState(null)
@@ -126,7 +126,7 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh }) => {
   // buttons / QR fallback stay available for a manual retry.
   const autoTriedRef = useRef(false)
   useEffect(() => {
-    if (!live || !balance || !amount || loading || connecting || error || walletNotLinked || session?.approveTxid || approvalTxid) return
+    if (!live || !balance || !amount || loading || connecting || error || walletNotLinked || session?.status === "active" || session?.approveTxid || approvalTxid) return
     if (autoTriedRef.current) return
     autoTriedRef.current = true
     onApproveNow()
@@ -151,29 +151,43 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live, hasTronLinkExt, balance, session, loading, connecting, error, walletNotLinked])
 
-  // Poll while a session waits for the user's signature, so the panel flips to
-  // Active on its own once the backend confirms the on-chain allowance.
+  // Verify submitted approvals sequentially; never request another signature.
+  const [checking, setChecking] = useState(false)
+  const [pollAttempt, setPollAttempt] = useState(0)
+  const [verificationFailed, setVerificationFailed] = useState(false)
   useEffect(() => {
-    if (!session || session.status !== "pending_approval" || connecting) return
-    const timer = setInterval(async () => {
+    if (!(approvalTxid || session?.approveTxid) || session?.status === "active" || loading || connecting || verificationFailed) return
+    let cancelled = false
+    let timer
+    let delay = 3000
+    const poll = async () => {
+      setChecking(true)
       try {
-        const res = await api.tronPaymentSession()
-        if (!res.ok) return
-        const s = res.json.session
-        if (!s) return
-        if (s.status !== "pending_approval") {
-          setSession(s)
-          setInfo(s.status === "active" ? "Payment session approved!" : `Payment session ${s.status}.`)
-          load()
+        const res = await api.tronPaymentConfirm({ check: true })
+        if (cancelled) return
+        if (res.ok && res.json?.session?.status === "active") {
+          setSession(res.json.session)
+          setError("")
+          setInfo("")
+          return
         }
+        if (res.json?.code === "TX_REVERTED" || res.json?.code === "CAP_VIOLATION") {
+          setError(res.json.message)
+          setVerificationFailed(true)
+          return
+        }
+        setError(res.json?.code === "TX_PENDING" ? "" : (res.json?.message || "Status unavailable. Retrying automatically…"))
       } catch {
-        /* keep polling */
+        if (!cancelled) setError("Connection interrupted. Retrying approval status automatically…")
+      } finally { if (!cancelled) setChecking(false) }
+      if (!cancelled) {
+        timer = setTimeout(poll, delay)
+        delay = Math.min(delay * 2, 30000)
       }
-    }, 3000)
-    return () => clearInterval(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.status, connecting, live])
-
+    }
+    timer = setTimeout(poll, 1000)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [approvalTxid, session?.approveTxid, session?.status, loading, connecting, pollAttempt, verificationFailed])
   // Live-mode safety net: once we hold session data that is no longer awaiting
   // approval (already active, or just confirmed via tap/QR), the on-connect
   // flow is over — hand control back so Login can finish the navigation.
@@ -181,7 +195,7 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh }) => {
   // settle before any decision is made.
   useEffect(() => {
     if (!live || !session || loading) return
-    if (session.status !== "pending_approval") live.onDone()
+    if (session.status === "active") live.onDone()
   }, [live, session, loading])
 
   const maxUsdt = balance?.allowedMaxUsdt || balance?.capFloorUsdt || "10000"
@@ -631,6 +645,35 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh }) => {
 
   // Live (on-connect) card: cap input prefilled with the allowed maximum,
   // tap-to-approve over the held session, QR pairing as fallback.
+  if (compact) {
+    const ready = session?.status === "active"
+    const submitted = Boolean(trackedTxid)
+    const label = ready ? "✓ Wallet ready" : verificationFailed ? "Approval failed" : submitted
+      ? (error ? "Retry status check" : "Confirming approval…")
+      : `Approve ${amount || maxUsdt} USDT cap in wallet${loading || connecting ? "…" : ""}`
+    return (
+      <div aria-live='polite'>
+        <button className='btn btn-primary'
+          disabled={ready || loading || connecting || checking || verificationFailed}
+          onClick={async () => {
+            if (submitted) { setError(""); setPollAttempt(value => value + 1) }
+            else if (live) onApproveNow()
+            else if (hasTronLinkExt) onApproveWithExtension(maxUsdt)
+            else {
+              setLoading(true)
+              try {
+                const pending = await getOrCreatePending(amount || maxUsdt)
+                if (pending.error) { setError(pending.error); return }
+                await onApproveWithQr()
+              } catch (err) { setError(err.message || "Could not prepare approval.") }
+              finally { setLoading(false) }
+            }
+          }}>{label}</button>
+        {qrUri && <QRCodeSVG value={qrUri} size={208} />}
+        {error && <p className='login-error'>{error}</p>}
+      </div>
+    )
+  }
   if (live) {
     return (
       <div className='tron-payments tron-payments-live'>
@@ -855,5 +898,3 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh }) => {
 }
 
 export default TronPaymentsPanel
-
-

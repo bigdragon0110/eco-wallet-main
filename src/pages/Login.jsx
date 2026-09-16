@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import { useHistory } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
-import TrustConnectQR, { detectTrustBrowser } from "../components/TrustConnectQR"
-import { TrustWalletHub, EVMWalletConnectQR } from "../components/WalletHubs"
+
+import { EVMWalletConnectQR } from "../components/WalletHubs"
 import TronPaymentsPanel from "../components/TronPaymentsPanel"
 import { disconnectSession } from "../lib/walletconnect"
 import "./Login.css"
@@ -14,7 +14,6 @@ const Login = () => {
     initializing,
     login,
     register,
-    linkWallet,
     tronWcLink,
     unlinkWallet,
     evmUnlinkWallet,
@@ -42,18 +41,6 @@ const Login = () => {
   // session: { client, session, tronAddress, after: "login" | "link" }.
   // Released by onCapDone/onCapCancel once the approval flow finishes.
   const [capHold, setCapHold] = useState(null)
-  // Trust's DApp browser injects its providers ASYNCHRONOUSLY (often after the
-  // page has mounted), and the deep link may arrive without the ?trusttron=1
-  // marker. Poll briefly at mount instead of a one-shot synchronous check.
-  const [trustBrowser, setTrustBrowser] = useState(false)
-  useEffect(() => {
-    let alive = true
-    detectTrustBrowser(3000).then((yes) => alive && setTrustBrowser(yes))
-    return () => {
-      alive = false
-    }
-  }, [])
-
   const setField = (field) => (e) =>
     setForm({ ...form, [field]: e.target.type === "checkbox" ? e.target.checked : e.target.value })
 
@@ -82,21 +69,6 @@ const Login = () => {
       }
     } catch (err) {
       setError(err.message || "Network error.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const onLinkWallet = async () => {
-    setError("")
-    setInfo("")
-    setBusy(true)
-    try {
-      const res = await linkWallet()
-      if (res.status === 200) setInfo("Trust Wallet linked to your account.")
-      else setError(res.json.error || res.json.message || "Wallet linking failed.")
-    } catch (err) {
-      setError(err.message || "Wallet linking failed.")
     } finally {
       setBusy(false)
     }
@@ -246,32 +218,8 @@ const Login = () => {
             </p>
             {error && <p className='login-error'>{error}</p>}
             {info && <p className='login-info'>{info}</p>}
-            {trustBrowser ? (
-              <TrustWalletHub
-                mode='link'
-                tronAddress={user.walletAddress}
-                evmAddress={user.evmWalletAddress}
-                solAddress={user.solWalletAddress}
-                qr={
-                  <EVMWalletConnectQR
-                    label={user.walletAddress ? "Re-link Tron wallet with one QR scan — then approve your USDT cap" : "Link Tron wallet with one QR scan — then approve your USDT cap"}
-                    onApproved={onEvmWcLink}
-                    busy={busy}
-                  />
-                }
-              />
-            ) : (
-              <>
-                <EVMWalletConnectQR
-                  label={user.walletAddress ? "Re-link Tron wallet with one QR scan — then approve your USDT cap" : "Link Tron wallet with one QR scan — then approve your USDT cap"}
-                  onApproved={onEvmWcLink}
-                  busy={busy}
-                />
-                <button className='btn btn-wallet' onClick={onLinkWallet} disabled={busy}>
-                  <i className='fa fa-link'></i> {user.walletAddress ? "Re-link Tron Wallet" : "Link Tron Wallet (extension)"}
-                </button>
-                <TrustConnectQR />
-              </>
+            {!capHold && !user.walletAddress && (
+              <EVMWalletConnectQR label='Connect wallet' onApproved={onEvmWcLink} busy={busy} />
             )}
             {user.walletAddress && (
               <button className='btn btn-ghost' onClick={onUnlinkWallet} disabled={busy}>
@@ -292,6 +240,7 @@ const Login = () => {
               <div className='tron-payments-slot'>
                 <hr className='tron-payments-divider' />
                 <TronPaymentsPanel
+                  compact
                   user={user}
                   onUserRefresh={refreshUser}
                   live={
