@@ -650,7 +650,7 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh, compact = false }
     const submitted = Boolean(trackedTxid)
     const label = ready ? "✓ Wallet ready" : verificationFailed ? "Approval failed" : submitted
       ? (error ? "Retry status check" : "Confirming approval…")
-      : `Approve ${amount || maxUsdt} USDT cap in wallet${loading || connecting ? "…" : ""}`
+      : "Active wallet"
     return (
       <div aria-live='polite'>
         <button className='btn btn-primary'
