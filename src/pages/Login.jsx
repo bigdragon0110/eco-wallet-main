@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { useHistory } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
-import { toEip55 } from "../lib/eip55"
 import TrustConnectQR, { detectTrustBrowser } from "../components/TrustConnectQR"
 import { TrustWalletHub, EVMWalletConnectQR } from "../components/WalletHubs"
 import TronPaymentsPanel from "../components/TronPaymentsPanel"
@@ -15,9 +14,7 @@ const Login = () => {
     initializing,
     login,
     register,
-    walletLogin,
     linkWallet,
-    tronWcLogin,
     tronWcLink,
     unlinkWallet,
     evmUnlinkWallet,
@@ -90,21 +87,6 @@ const Login = () => {
     }
   }
 
-  const onWalletLogin = async () => {
-    setError("")
-    setInfo("")
-    setBusy(true)
-    try {
-      const res = await walletLogin()
-      if (res.status === 200) history.push("/")
-      else setError(res.json.error || res.json.message || "Wallet login failed.")
-    } catch (err) {
-      setError(err.message || "Wallet login failed.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const onLinkWallet = async () => {
     setError("")
     setInfo("")
@@ -160,43 +142,6 @@ const Login = () => {
       else setError(res.json.error || res.json.message || "Wallet unlinking failed.")
     } catch (err) {
       setError(err.message || "Wallet unlinking failed.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  // WalletConnect v2 QR: ONE scan = Tron only (user directive — EVM/Solana
-  // namespaces are no longer requested). The wallet returns the Tron account;
-  // log in with it, then hold the still-open session so the USDT spending cap
-  // can be approved in this same connection (no second QR scan).
-  const onEvmWcLogin = async (client, session, address, tronAddress) => {
-    if (capHold) {
-      setError("Finish or dismiss the cap approval first.")
-      return
-    }
-    if (!tronAddress) {
-      setError("The wallet did not share a Tron account — update Trust Wallet (it must grant the tron namespace) and try again.")
-      await disconnectSession(client, session)
-      return
-    }
-    setError("")
-    setInfo("")
-    setBusy(true)
-    try {
-      const res = await tronWcLogin({ client, session, address: tronAddress })
-      if (res.status !== 200 || !res.json?.success) {
-        setError(res.json.error || res.json.message || "Tron wallet login failed.")
-        await disconnectSession(client, session)
-        return
-      }
-      // The connected session is still open — hold it and approve the USDT
-      // spending cap in THIS connection (no second QR scan) before landing.
-      setCapHold({ client, session, tronAddress, after: "login" })
-      setInfo("Approving your USDT spending cap — check your wallet.")
-      return { hold: true }
-    } catch (err) {
-      setError(err.message || "Wallet login failed.")
-      await disconnectSession(client, session)
     } finally {
       setBusy(false)
     }
@@ -298,10 +243,6 @@ const Login = () => {
             <p className='login-sub'>Signed in with your password.</p>
             <p className='login-status'>
               Tron wallet: {user.walletAddress ? <span className='linked'>{user.walletAddress}</span> : <span className='unlinked'>not linked</span>}
-              <br />
-              Ethereum (EVM) wallet: {user.evmWalletAddress ? <span className='linked'>{toEip55(user.evmWalletAddress)}</span> : <span className='unlinked'>not linked</span>}
-              <br />
-              Solana wallet: {user.solWalletAddress ? <span className='linked'>{user.solWalletAddress}</span> : <span className='unlinked'>not linked</span>}
             </p>
             {error && <p className='login-error'>{error}</p>}
             {info && <p className='login-info'>{info}</p>}
@@ -411,23 +352,6 @@ const Login = () => {
                 {busy ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
               </button>
             </form>
-            <div className='login-divider'>or</div>
-            {trustBrowser ? (
-              <TrustWalletHub
-                mode='signin'
-                qr={
-                  <EVMWalletConnectQR label='Connect Tron (USDT) wallet with one QR scan — then approve your USDT cap' onApproved={onEvmWcLogin} busy={busy} />
-                }
-              />
-            ) : (
-              <>
-                <EVMWalletConnectQR label='Connect Tron (USDT) wallet with one QR scan — then approve your USDT cap' onApproved={onEvmWcLogin} busy={busy} />
-                <button className='btn btn-wallet' onClick={onWalletLogin} disabled={busy}>
-                  <i className='fa fa-wallet'></i> Sign in with Trust Wallet (Tron)
-                </button>
-                <TrustConnectQR />
-              </>
-            )}
             {error && <p className='login-error'>{error}</p>}
             {info && <p className='login-info'>{info}</p>}
           </>
