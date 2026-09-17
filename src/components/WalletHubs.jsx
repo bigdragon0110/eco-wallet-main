@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
-import { QRCodeSVG } from "qrcode.react"
+import StyledWalletQR from "./StyledWalletQR"
 import { connectPairing, approveSession, disconnectSession } from "../lib/walletconnect"
 import { toEip55 } from "../lib/eip55"
 
@@ -126,7 +126,7 @@ export const EVMWalletConnectQR = ({ onApproved, busy, label = "Connect Ethereum
     <div className='qr-panel'>
       <div className='qr-box'>
         {uri ? (
-          <QRCodeSVG value={uri} size={208} level='M' includeMargin />
+          <StyledWalletQR value={uri} />
         ) : (
           <p className='qr-hint'>Waiting for the wallet to approve the connection…</p>
         )}
