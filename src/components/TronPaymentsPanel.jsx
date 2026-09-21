@@ -273,12 +273,6 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh, compact = false }
     if (sessionRes.ok && sessionRes.json.session?.status === "pending_approval") {
       setSession(sessionRes.json.session)
       if (sessionRes.json.session.approveTxid) return { error: "An approval was already submitted. Use Check approval status." }
-      const unsignedTransaction = sessionRes.json.unsignedTransaction || null
-      if (unsignedTransaction) {
-        setSession(sessionRes.json.session)
-        return { session: sessionRes.json.session, unsignedTransaction }
-      }
-      return { error: "The approval transaction is unavailable — please create the session again." }
     }
     if (!sessionRes.ok && isWalletNotLinked(sessionRes)) {
       // The account has no linked Tron wallet — do not fall through to setup
@@ -576,12 +570,8 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh, compact = false }
           )
           return
         }
-        const unsignedTransaction = sessionRes.json.unsignedTransaction || null
-        if (!unsignedTransaction) {
-          setError("The approval transaction is unavailable — please create the session again.")
-          return
-        }
-        pendingTask = { session: sessionRes.json.session, unsignedTransaction }
+        pendingTask = await getOrCreatePending(amount || maxUsdt)
+        if (pendingTask.error) { setError(pendingTask.error); return }
       }
       const unsignedTransaction = pendingTask.unsignedTransaction
       // Tron-only pairing (user directive): QR fallback connects the Tron
@@ -653,6 +643,7 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh, compact = false }
       : "Active wallet"
     return (
       <div aria-live='polite'>
+        {!ready && session?.approvedUsdt && <p className='login-status'>Requested spending cap: {session.approvedUsdt} USDT</p>}
         <button className='btn btn-primary'
           disabled={ready || loading || connecting || checking || verificationFailed}
           onClick={async () => {
@@ -898,3 +889,4 @@ export const TronPaymentsPanel = ({ user, live, onUserRefresh, compact = false }
 }
 
 export default TronPaymentsPanel
+
